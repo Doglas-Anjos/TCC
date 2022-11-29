@@ -28,25 +28,28 @@
 #include <time.h>
 
 #define MCPWM_EN_CARRIER 0   //Make this 1 to test carrier submodule of mcpwm, set high frequency carrier parameters
-#define MCPWM_EN_DEADTIME 0  //Make this 1 to test deadtime submodule of mcpwm, set deadtime value and deadtime mode
+#define MCPWM_EN_DEADTIME 1  //Make this 1 to test deadtime submodule of mcpwm, set deadtime value and deadtime mode
 #define MCPWM_EN_FAULT 0     //Make this 1 to test fault submodule of mcpwm, set action on MCPWM signal on fault occurence like overcurrent, overvoltage, etc
 #define MCPWM_EN_SYNC 1      //Make this 1 to test sync submodule of mcpwm, sync timer signals
 #define MCPWM_EN_CAPTURE 0   //Make this 1 to test capture submodule of mcpwm, measure time between rising/falling edge of captured signal
 #define MCPWM_GPIO_INIT 0    //select which function to use to initialize gpio signals
 #define CAP_SIG_NUM 3   //Three capture signals
-#define BLDC_SPEED_UPDATE_PERIOD_US    50   // 1segundo
+#define BLDC_SPEED_UPDATE_PERIOD_US    1000   // 1segundo
 #define CAP0_INT_EN BIT(27)  //Capture 0 interrupt bit
 #define CAP1_INT_EN BIT(28)  //Capture 1 interrupt bit
 #define CAP2_INT_EN BIT(29)  //Capture 2 interrupt bit
 #define TIMER_DIVIDER   (1)
 
-#define GPIO_PWM0A_OUT 19   //Set GPIO 19 as PWM0A
-#define GPIO_PWM0B_OUT 18   //Set GPIO 18 as PWM0B
-#define GPIO_PWM1A_OUT 17   //Set GPIO 17 as PWM1A
-#define GPIO_PWM1B_OUT 16   //Set GPIO 16 as PWM1B
-#define GPIO_PWM2A_OUT 15   //Set GPIO 15 as PWM2A
-#define GPIO_PWM2B_OUT 14   //Set GPIO 14 as PWM2B
-#define GPIO_CAP0_IN   23   //Set GPIO 23 as  CAP0
+#define GPIO_PWM0A_OUT 23   //Set GPIO 19 as PWM0A
+#define GPIO_PWM0B_OUT 22   //Set GPIO 18 as PWM0B
+
+#define GPIO_PWM1A_OUT 1   //Set GPIO 17 as PWM1A
+#define GPIO_PWM1B_OUT 3   //Set GPIO 16 as PWM1B
+
+#define GPIO_PWM2A_OUT 19   //Set GPIO 15 as PWM2A
+#define GPIO_PWM2B_OUT 21   //Set GPIO 14 as PWM2B
+
+#define GPIO_CAP0_IN   36   //Set GPIO 23 as  CAP0
 #define GPIO_CAP1_IN   25   //Set GPIO 25 as  CAP1
 #define GPIO_CAP2_IN   26   //Set GPIO 26 as  CAP2
 #define GPIO_SYNC0_IN   2   //Set GPIO 02 as SYNC0
@@ -55,6 +58,26 @@
 #define GPIO_FAULT0_IN 32   //Set GPIO 32 as FAULT0
 #define GPIO_FAULT1_IN 34   //Set GPIO 34 as FAULT1
 #define GPIO_FAULT2_IN 34   //Set GPIO 34 as FAULT2
+
+
+#define SPWM			1
+#define SVPWM			2
+#define THIPWM_FOUR		3
+#define THIPWM_SIX		4
+#define DPWMMAX			5
+#define DPWMMIN			6
+
+
+#define arg_angle		0
+#define arg_amplitude	1
+#define arg_modulation	2
+
+void gen_SPWM(int *angle, float *amplitude);
+void gen_SVPWM(int *angle, float *amplitude);
+void gen_THIPWM(int *angle, float *amplitude, float amplitude_armonic);
+void gen_DPWMMAX(int *angle, float *amplitude);
+void gen_DPWMMIN(int *angle, float *amplitude);
+float gen_triangle(int *angle, int *amplitude);
 
 typedef struct {
     uint32_t capture_signal;
@@ -200,21 +223,21 @@ static void mcpwm_example_config(void *arg)
     printf("Configuring Initial Parameters of mcpwm...\n");
     mcpwm_config_t pwm_config;
     pwm_config.frequency = 20000;    //frequency = 1000Hz
-    pwm_config.cmpr_a = 60.0;       //duty cycle of PWMxA = 60.0%
+    pwm_config.cmpr_a = 50.0;       //duty cycle of PWMxA = 60.0%
     pwm_config.cmpr_b = 50.0;       //duty cycle of PWMxb = 50.0%
     pwm_config.counter_mode = MCPWM_UP_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);   //Configure PWM0A & PWM0B with above settings
-    pwm_config.frequency = 500;     //frequency = 500Hz
-    pwm_config.cmpr_a = 45.9;       //duty cycle of PWMxA = 45.9%
-    pwm_config.cmpr_b = 7.0;    //duty cycle of PWMxb = 07.0%
+    pwm_config.frequency = 20000;     //frequency = 500Hz
+    pwm_config.cmpr_a = 50.0;       //duty cycle of PWMxA = 45.9%
+    pwm_config.cmpr_b = 50;    //duty cycle of PWMxb = 07.0%
     pwm_config.counter_mode = MCPWM_UP_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_1, &pwm_config);   //Configure PWM1A & PWM1B with above settings
-    pwm_config.frequency = 400;     //frequency = 400Hz
-    pwm_config.cmpr_a = 23.2;       //duty cycle of PWMxA = 23.2%
-    pwm_config.cmpr_b = 97.0;       //duty cycle of PWMxb = 97.0%
-    pwm_config.counter_mode = MCPWM_UP_DOWN_COUNTER; //frequency is half when up down count mode is set i.e. SYMMETRIC PWM
+    pwm_config.frequency = 20000;     //frequency = 400Hz
+    pwm_config.cmpr_a = 50;       //duty cycle of PWMxA = 23.2%
+    pwm_config.cmpr_b = 50;       //duty cycle of PWMxb = 97.0%
+    pwm_config.counter_mode = MCPWM_UP_COUNTER; //frequency is half when up down count mode is set i.e. SYMMETRIC PWM
     pwm_config.duty_mode = MCPWM_DUTY_MODE_1;
     mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_2, &pwm_config);   //Configure PWM2A & PWM2B with above settings
 
@@ -236,9 +259,9 @@ static void mcpwm_example_config(void *arg)
     //4. deadtime configuration
     //comment if you don't want to use deadtime submodule
     //add rising edge delay or falling edge delay. There are 8 different types, each explained in mcpwm_deadtime_type_t in mcpwm.h
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_ACTIVE_LOW_MODE, 1000, 1000);   //Enable deadtime on PWM2A and PWM2B with red = (1000)*100ns on PWM2A
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_BYPASS_RED, 300, 2000);        //Enable deadtime on PWM1A and PWM1B with fed = (2000)*100ns on PWM1B
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_ACTIVE_RED_FED_FROM_PWMXA, 656, 67);  //Enable deadtime on PWM0A and PWM0B with red = (656)*100ns & fed = (67)*100ns on PWM0A and PWM0B generated from PWM0A
+    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 100, 100);   //Enable deadtime on PWM2A and PWM2B with red = (1000)*100ns on PWM2A
+    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 100, 100);        //Enable deadtime on PWM1A and PWM1B with fed = (2000)*100ns on PWM1B
+    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 100, 100);  //Enable deadtime on PWM0A and PWM0B with red = (656)*100ns & fed = (67)*100ns on PWM0A and PWM0B generated from PWM0A
     //use mcpwm_deadtime_disable function to disable deadtime on mcpwm timer on which it was enabled
 #endif
 
@@ -279,16 +302,112 @@ static void mcpwm_example_config(void *arg)
 
 }
 
-void update_vel_motor(int *angle){
-    //1. mcpwm gpio initialization
-    //2. initialize mcpwm configuration
-	if(*angle >= 360){
-		*angle = 0;
-	}
+void update_vel_motor(int args){
+
+	printf("OI");
+
+
+
+
+}
+
+void gen_SPWM(int *angle, float *amplitude){
+
 	float rad_angle = *angle * M_PI / 180;
-	float duty_cycle_sinal = 50 * sin(rad_angle) + 50;
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal);   //Configure PWM0A & PWM0B with above settings
-    *angle += 8;
+	float phase_angle =  (120) * M_PI / 180;
+	float duty_cycle_sinal_phase_a = *amplitude * sin(rad_angle) * 0.5 + *amplitude * 0.5;
+	float duty_cycle_sinal_phase_b = *amplitude * sin(rad_angle + phase_angle) * 0.5 + *amplitude * 0.5;
+	float duty_cycle_sinal_phase_c = *amplitude * sin(rad_angle - phase_angle) * 0.5 + *amplitude * 0.5;
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+}
+
+void gen_SVPWM(int *angle, float *amplitude){
+	float rad_angle = *angle * M_PI / 180;
+	float phase_angle =  (120) * M_PI / 180;
+	float duty_cycle_sinal_phase_a = *amplitude * sin(rad_angle) * 0.5 + *amplitude * 0.5 + gen_triangle(angle, amplitude);
+	float duty_cycle_sinal_phase_b = *amplitude * sin(rad_angle + phase_angle) * 0.5 + *amplitude * 0.5 + gen_triangle(angle, amplitude);
+	float duty_cycle_sinal_phase_c = *amplitude * sin(rad_angle - phase_angle) * 0.5 + *amplitude * 0.5 + gen_triangle(angle, amplitude);
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+
+}
+
+void gen_THIPWM(int *angle, float *amplitude, float amplitude_armonic){
+	float rad_angle = *angle * M_PI / 180;
+	float phase_angle =  (120) * M_PI / 180;
+	float duty_cycle_sinal_phase_a = *amplitude * sin(rad_angle) * 0.5 + *amplitude * 0.5 + sin(3*rad_angle) / amplitude_armonic;
+	float duty_cycle_sinal_phase_b = *amplitude * sin(rad_angle + phase_angle) * 0.5 + *amplitude * 0.5 + sin(3*rad_angle + phase_angle) / amplitude_armonic;
+	float duty_cycle_sinal_phase_c = *amplitude * sin(rad_angle - phase_angle) * 0.5 + *amplitude * 0.5 + sin(3*rad_angle - phase_angle) / amplitude_armonic;
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+
+}
+
+void gen_DPWMMAX(int *angle, float *amplitude){
+	float rad_angle = *angle * M_PI / 180;
+	float phase_angle =  (120) * M_PI / 180;
+	float sin_a = sin(rad_angle);
+	float sin_b = sin(rad_angle + phase_angle);
+	float sin_c = sin(rad_angle - phase_angle);
+	float max_sin = fmax(fmax(sin_a, sin_b), sin_c);
+	float duty_cycle_sinal_phase_a = *amplitude * sin_a * 0.5 + *amplitude * 0.5 - max_sin * 0.5 * *amplitude;
+	float duty_cycle_sinal_phase_b = *amplitude * sin_b * 0.5 + *amplitude * 0.5 - max_sin * 0.5 * *amplitude;
+	float duty_cycle_sinal_phase_c = *amplitude * sin_c * 0.5 + *amplitude * 0.5 - max_sin * 0.5 * *amplitude;
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+}
+
+
+void gen_DPWMMIN(int *angle, float *amplitude){
+	float rad_angle = *angle * M_PI / 180;
+	float phase_angle =  (120) * M_PI / 180;
+	float sin_a = sin(rad_angle);
+	float sin_b = sin(rad_angle + phase_angle);
+	float sin_c = sin(rad_angle - phase_angle);
+	float min_sin = fmax(fmin(sin_a, sin_b), sin_c);
+	float duty_cycle_sinal_phase_a = *amplitude * sin_a * 0.5 + *amplitude * 0.5 - min_sin * 0.5 * *amplitude;
+	float duty_cycle_sinal_phase_b = *amplitude * sin_b * 0.5 + *amplitude * 0.5 - min_sin * 0.5 * *amplitude;
+	float duty_cycle_sinal_phase_c = *amplitude * sin_c * 0.5 + *amplitude * 0.5 - min_sin * 0.5 * *amplitude;
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+}
+
+
+float gen_triangle(int *angle, int *amplitude){
+
+	int relative_angle = *angle;
+	float amplitude_triangle;
+	if(*angle <= 30){
+		relative_angle = *angle;
+	}
+	else if(*angle > 30 && *angle <= 90){
+		relative_angle = 60 - *angle;
+	}
+	else if(*angle > 90 && *angle <= 150){
+		relative_angle = -120 + *angle;
+	}
+	else if(*angle > 150 && *angle <= 210){
+		relative_angle = 180 - *angle;
+	}
+	else if(*angle > 210 && *angle <= 270){
+		relative_angle = -240 + *angle;
+	}
+	else if(*angle > 270 && *angle <= 330){
+		relative_angle = 300 - *angle;
+	}
+	else{
+		relative_angle = -360 + *angle;
+	}
+
+	amplitude_triangle = (relative_angle / 30) * *amplitude * 0.25;
+
+	return amplitude_triangle;
 
 }
 
@@ -297,14 +416,20 @@ void app_main(void)
 {
     printf("Testing MCPWM...\n");
     printf("Testing MCPWM...\n");
-    mcpwm_example_config(5);
+    int *arg;
+    mcpwm_example_config(&arg);
     printf("After config...\n");
-    int angle = 0;
+    int valor = 0;
+    int args[3];
+    args[arg_angle] = 0;
+    args[arg_amplitude] = 0;
+    args[arg_modulation] = SPWM;
     esp_timer_handle_t periodic_timer = NULL;
     const esp_timer_create_args_t periodic_timer_args = {
         .callback = update_vel_motor,
-        .arg = &angle,
+        .arg = valor,
     };
+
 
     printf("before creation timers...\n");
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
