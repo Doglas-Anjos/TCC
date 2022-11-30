@@ -1,4 +1,3 @@
-
 /* MCPWM basic config example
    This example code is in the Public Domain (or CC0 licensed, at your option.)
    Unless required by applicable law or agreed to in writing, this
@@ -43,11 +42,11 @@
 #define GPIO_PWM0A_OUT 23   //Set GPIO 19 as PWM0A
 #define GPIO_PWM0B_OUT 22   //Set GPIO 18 as PWM0B
 
-#define GPIO_PWM1A_OUT 1   //Set GPIO 17 as PWM1A
-#define GPIO_PWM1B_OUT 3   //Set GPIO 16 as PWM1B
+#define GPIO_PWM1A_OUT 21   //Set GPIO 17 as PWM1A
+#define GPIO_PWM1B_OUT 19   //Set GPIO 16 as PWM1B
 
-#define GPIO_PWM2A_OUT 19   //Set GPIO 15 as PWM2A
-#define GPIO_PWM2B_OUT 21   //Set GPIO 14 as PWM2B
+#define GPIO_PWM2A_OUT 16   //Set GPIO 15 as PWM2A
+#define GPIO_PWM2B_OUT 17   //Set GPIO 14 as PWM2B
 
 #define GPIO_CAP0_IN   36   //Set GPIO 23 as  CAP0
 #define GPIO_CAP1_IN   25   //Set GPIO 25 as  CAP1
@@ -58,6 +57,7 @@
 #define GPIO_FAULT0_IN 32   //Set GPIO 32 as FAULT0
 #define GPIO_FAULT1_IN 34   //Set GPIO 34 as FAULT1
 #define GPIO_FAULT2_IN 34   //Set GPIO 34 as FAULT2
+
 
 
 #define SPWM			1
@@ -72,12 +72,12 @@
 #define arg_amplitude	1
 #define arg_modulation	2
 
-void gen_SPWM(int *angle, float *amplitude);
-void gen_SVPWM(int *angle, float *amplitude);
-void gen_THIPWM(int *angle, float *amplitude, float amplitude_armonic);
-void gen_DPWMMAX(int *angle, float *amplitude);
-void gen_DPWMMIN(int *angle, float *amplitude);
-float gen_triangle(int *angle, int *amplitude);
+void gen_SPWM(int angle, float amplitude);
+void gen_SVPWM(int angle, float amplitude);
+void gen_THIPWM(int angle, float amplitude, float amplitude_armonic);
+void gen_DPWMMAX(int angle, float amplitude);
+void gen_DPWMMIN(int angle, float amplitude);
+float gen_triangle(int angle, int amplitude);
 
 typedef struct {
     uint32_t capture_signal;
@@ -148,17 +148,17 @@ static void mcpwm_example_gpio_initialize(void)
 static void gpio_test_signal(void *arg)
 {
     printf("intializing test signal...\n");
-    gpio_config_t gp;
-    gp.intr_type = GPIO_INTR_DISABLE;
-    gp.mode = GPIO_MODE_OUTPUT;
+//    gpio_config_t gp;
+//    gp.intr_type = GPIO_INTR_DISABLE;
+//    gp.mode = GPIO_MODE_OUTPUT;
     //gp.pin_bit_mask = GPIO_SEL_12;
 
-    gpio_config(&gp);
+//    gpio_config(&gp);
     while (1) {
         //here the period of test signal is 20ms
-        gpio_set_level(GPIO_NUM_12, 1); //Set high
+//        gpio_set_level(GPIO_NUM_12, 1); //Set high
         vTaskDelay(10);             //delay of 10ms
-        gpio_set_level(GPIO_NUM_12, 0); //Set low
+//        gpio_set_level(GPIO_NUM_12, 0); //Set low
         vTaskDelay(10);         //delay of 10ms
     }
 }
@@ -302,115 +302,146 @@ static void mcpwm_example_config(void *arg)
 
 }
 
-void update_vel_motor(int args){
+void update_vel_motor(int *args){
+	int *angle = &args[arg_angle];
+	int *amplitude = &args[arg_amplitude];
+	int *type_modulation = &args[arg_modulation];
+	if(*angle >= 360){
+		*angle = 0;
+	}
 
-	printf("OI");
 
+	switch(*type_modulation){
+		case SPWM:
+			gen_SPWM(*angle, *amplitude);
+			break;
+		case SVPWM:
+			gen_SVPWM(*angle, *amplitude);
+			break;
+		case THIPWM_FOUR:
+			gen_THIPWM(*angle, *amplitude,4);
+			break;
+		case THIPWM_SIX:
+			gen_THIPWM(*angle, *amplitude,6);
+			break;
+		case DPWMMAX:
+			gen_DPWMMAX(*angle, *amplitude);
+			break;
+		case DPWMMIN:
+			gen_DPWMMIN(*angle, *amplitude);
+			break;
+		default:
+			gen_SPWM(*angle, *amplitude);
+			break;
 
-
+	}
+	*angle += 8;
 
 }
 
-void gen_SPWM(int *angle, float *amplitude){
+void gen_SPWM(int angle, float amplitude){
 
-	float rad_angle = *angle * M_PI / 180;
+	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
-	float duty_cycle_sinal_phase_a = *amplitude * sin(rad_angle) * 0.5 + *amplitude * 0.5;
-	float duty_cycle_sinal_phase_b = *amplitude * sin(rad_angle + phase_angle) * 0.5 + *amplitude * 0.5;
-	float duty_cycle_sinal_phase_c = *amplitude * sin(rad_angle - phase_angle) * 0.5 + *amplitude * 0.5;
+	float duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5;
+	float duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5;
+	float duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5;
+
+
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 }
 
-void gen_SVPWM(int *angle, float *amplitude){
-	float rad_angle = *angle * M_PI / 180;
+void gen_SVPWM(int angle, float amplitude){
+	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
-	float duty_cycle_sinal_phase_a = *amplitude * sin(rad_angle) * 0.5 + *amplitude * 0.5 + gen_triangle(angle, amplitude);
-	float duty_cycle_sinal_phase_b = *amplitude * sin(rad_angle + phase_angle) * 0.5 + *amplitude * 0.5 + gen_triangle(angle, amplitude);
-	float duty_cycle_sinal_phase_c = *amplitude * sin(rad_angle - phase_angle) * 0.5 + *amplitude * 0.5 + gen_triangle(angle, amplitude);
+	float duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + 0.5* amplitude + gen_triangle(angle, amplitude) + 0.5* amplitude;
+	float duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + 0.5* amplitude + gen_triangle(angle, amplitude);
+	float duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + 0.5* amplitude + gen_triangle(angle, amplitude);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
 }
 
-void gen_THIPWM(int *angle, float *amplitude, float amplitude_armonic){
-	float rad_angle = *angle * M_PI / 180;
+void gen_THIPWM(int angle, float amplitude, float amplitude_armonic){
+	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
-	float duty_cycle_sinal_phase_a = *amplitude * sin(rad_angle) * 0.5 + *amplitude * 0.5 + sin(3*rad_angle) / amplitude_armonic;
-	float duty_cycle_sinal_phase_b = *amplitude * sin(rad_angle + phase_angle) * 0.5 + *amplitude * 0.5 + sin(3*rad_angle + phase_angle) / amplitude_armonic;
-	float duty_cycle_sinal_phase_c = *amplitude * sin(rad_angle - phase_angle) * 0.5 + *amplitude * 0.5 + sin(3*rad_angle - phase_angle) / amplitude_armonic;
+	float duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle) / amplitude_armonic;
+	float duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle + phase_angle) / amplitude_armonic;
+	float duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle - phase_angle) / amplitude_armonic;
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
 }
 
-void gen_DPWMMAX(int *angle, float *amplitude){
-	float rad_angle = *angle * M_PI / 180;
+void gen_DPWMMAX(int angle, float amplitude){
+	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
 	float sin_a = sin(rad_angle);
 	float sin_b = sin(rad_angle + phase_angle);
 	float sin_c = sin(rad_angle - phase_angle);
 	float max_sin = fmax(fmax(sin_a, sin_b), sin_c);
-	float duty_cycle_sinal_phase_a = *amplitude * sin_a * 0.5 + *amplitude * 0.5 - max_sin * 0.5 * *amplitude;
-	float duty_cycle_sinal_phase_b = *amplitude * sin_b * 0.5 + *amplitude * 0.5 - max_sin * 0.5 * *amplitude;
-	float duty_cycle_sinal_phase_c = *amplitude * sin_c * 0.5 + *amplitude * 0.5 - max_sin * 0.5 * *amplitude;
+	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + amplitude * 0.5 - max_sin * 0.25 * amplitude;
+	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + amplitude * 0.5 - max_sin * 0.25 * amplitude;
+	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + amplitude * 0.5 - max_sin * 0.25 * amplitude;
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 }
 
 
-void gen_DPWMMIN(int *angle, float *amplitude){
-	float rad_angle = *angle * M_PI / 180;
+void gen_DPWMMIN(int angle, float amplitude){
+	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
 	float sin_a = sin(rad_angle);
 	float sin_b = sin(rad_angle + phase_angle);
 	float sin_c = sin(rad_angle - phase_angle);
 	float min_sin = fmax(fmin(sin_a, sin_b), sin_c);
-	float duty_cycle_sinal_phase_a = *amplitude * sin_a * 0.5 + *amplitude * 0.5 - min_sin * 0.5 * *amplitude;
-	float duty_cycle_sinal_phase_b = *amplitude * sin_b * 0.5 + *amplitude * 0.5 - min_sin * 0.5 * *amplitude;
-	float duty_cycle_sinal_phase_c = *amplitude * sin_c * 0.5 + *amplitude * 0.5 - min_sin * 0.5 * *amplitude;
+	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + amplitude * 0.5 - min_sin * 0.5 * amplitude;
+	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + amplitude * 0.5 - min_sin * 0.5 * amplitude;
+	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + amplitude * 0.5 - min_sin * 0.5 * amplitude;
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 }
 
 
-float gen_triangle(int *angle, int *amplitude){
+float gen_triangle(int angle, int amplitude){
 
-	int relative_angle = *angle;
+	int relative_angle = angle;
 	float amplitude_triangle;
-	if(*angle <= 30){
-		relative_angle = *angle;
+	if(angle <= 30){
+		relative_angle = angle;
 	}
-	else if(*angle > 30 && *angle <= 90){
-		relative_angle = 60 - *angle;
+	else if(angle > 30 && angle <= 90){
+		relative_angle = 60 - angle;
 	}
-	else if(*angle > 90 && *angle <= 150){
-		relative_angle = -120 + *angle;
+	else if(angle > 90 && angle <= 150){
+		relative_angle = -120 + angle;
 	}
-	else if(*angle > 150 && *angle <= 210){
-		relative_angle = 180 - *angle;
+	else if(angle > 150 && angle <= 210){
+		relative_angle = 180 - angle;
 	}
-	else if(*angle > 210 && *angle <= 270){
-		relative_angle = -240 + *angle;
+	else if(angle > 210 && angle <= 270){
+		relative_angle = -240 + angle;
 	}
-	else if(*angle > 270 && *angle <= 330){
-		relative_angle = 300 - *angle;
+	else if(angle > 270 && angle <= 330){
+		relative_angle = 300 - angle;
 	}
 	else{
-		relative_angle = -360 + *angle;
+		relative_angle = -360 + angle;
 	}
 
-	amplitude_triangle = (relative_angle / 30) * *amplitude * 0.25;
+	amplitude_triangle = (((float)relative_angle) / 30) * amplitude * 0.25;
 
 	return amplitude_triangle;
 
 }
 
+int args[3];
 
 void app_main(void)
 {
@@ -420,14 +451,14 @@ void app_main(void)
     mcpwm_example_config(&arg);
     printf("After config...\n");
     int valor = 0;
-    int args[3];
+
     args[arg_angle] = 0;
-    args[arg_amplitude] = 0;
-    args[arg_modulation] = SPWM;
+    args[arg_amplitude] = 50;
+    args[arg_modulation] = SVPWM;
     esp_timer_handle_t periodic_timer = NULL;
     const esp_timer_create_args_t periodic_timer_args = {
         .callback = update_vel_motor,
-        .arg = valor,
+        .arg = args,
     };
 
 
