@@ -18,7 +18,10 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_attr.h"
+#include "esp_system.h"
+#include "driver/uart.h"
 #include "soc/rtc.h"
+#include "esp_log.h"
 #include "driver/mcpwm.h"
 #include "driver/gpio.h"
 #include "driver/timer.h"
@@ -33,7 +36,8 @@
 #define MCPWM_EN_CAPTURE 0   //Make this 1 to test capture submodule of mcpwm, measure time between rising/falling edge of captured signal
 #define MCPWM_GPIO_INIT 0    //select which function to use to initialize gpio signals
 #define CAP_SIG_NUM 3   //Three capture signals
-#define BLDC_SPEED_UPDATE_PERIOD_US    1000   // 1segundo
+#define BLDC_SPEED_UPDATE_PERIOD_US    200  // 1segundo
+#define BLDC_SPEED_UPDATE_PERIOD_US_RAMPA    1000  // 1segundo
 #define CAP0_INT_EN BIT(27)  //Capture 0 interrupt bit
 #define CAP1_INT_EN BIT(28)  //Capture 1 interrupt bit
 #define CAP2_INT_EN BIT(29)  //Capture 2 interrupt bit
@@ -45,8 +49,8 @@
 #define GPIO_PWM1A_OUT 21   //Set GPIO 17 as PWM1A
 #define GPIO_PWM1B_OUT 19   //Set GPIO 16 as PWM1B
 
-#define GPIO_PWM2A_OUT 16   //Set GPIO 15 as PWM2A
-#define GPIO_PWM2B_OUT 17   //Set GPIO 14 as PWM2B
+#define GPIO_PWM2A_OUT 32   //Set GPIO 15 as PWM2A
+#define GPIO_PWM2B_OUT 33   //Set GPIO 14 as PWM2B
 
 #define GPIO_CAP0_IN   36   //Set GPIO 23 as  CAP0
 #define GPIO_CAP1_IN   25   //Set GPIO 25 as  CAP1
@@ -60,24 +64,64 @@
 
 
 
+
 #define SPWM			1
 #define SVPWM			2
 #define THIPWM_FOUR		3
 #define THIPWM_SIX		4
 #define DPWMMAX			5
 #define DPWMMIN			6
+#define DPWM0			7
+#define DPWM1			8
+#define DPWM2			9
+#define DPWM3			10
 
+#define INDEX_FREQ 		1
+#define INDEX_AMPL		2
+#define INDEX_MODL		3
+#define INDEX_RAMP		4
+#define INDEX_TMRA		5
+
+#define	DIVISIONS_RAMPA 200
 
 #define arg_angle		0
 #define arg_amplitude	1
 #define arg_modulation	2
 
+#define delta_fr_rmp        0
+#define freq_final_rmp 		1
+#define delta_ampl_rmp 		2
+#define ampl_final_rmp 		3
+#define ramp_index			4
+
+
+
+#define TXD_PIN (GPIO_NUM_17)
+#define RXD_PIN (GPIO_NUM_16)
+
+
+static const int RX_BUF_SIZE = 1024;
 void gen_SPWM(int angle, float amplitude);
 void gen_SVPWM(int angle, float amplitude);
 void gen_THIPWM(int angle, float amplitude, float amplitude_armonic);
 void gen_DPWMMAX(int angle, float amplitude);
 void gen_DPWMMIN(int angle, float amplitude);
+void gen_DPWMM(int angle, float amplitude, int type_modulation);
 float gen_triangle(int angle, int amplitude);
+float find_time_couter_ramap(float time_rampa);
+void config_comand_esp(float freq, float ampl, int modul, int ramp, float time_ramp);
+void update_rampa(float * rampa_args);
+
+int args[3];
+float rampa_args[5];
+float delta_freq = 0.0;
+
+esp_timer_handle_t periodic_timer_rampa = NULL;
+const esp_timer_create_args_t periodic_timer_args_rampa = {
+        .callback = update_rampa,
+        .arg = rampa_args,
+    };
+
 
 typedef struct {
     uint32_t capture_signal;
@@ -86,6 +130,12 @@ typedef struct {
 
 uint32_t *current_cap_value = NULL;
 uint32_t *previous_cap_value = NULL;
+
+/////////////////////////////////////////// GLOBAL VARIABLES ///////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //xQueueHandle cap_queue;
 #if MCPWM_EN_CAPTURE
@@ -259,9 +309,9 @@ static void mcpwm_example_config(void *arg)
     //4. deadtime configuration
     //comment if you don't want to use deadtime submodule
     //add rising edge delay or falling edge delay. There are 8 different types, each explained in mcpwm_deadtime_type_t in mcpwm.h
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 100, 100);   //Enable deadtime on PWM2A and PWM2B with red = (1000)*100ns on PWM2A
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 100, 100);        //Enable deadtime on PWM1A and PWM1B with fed = (2000)*100ns on PWM1B
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 100, 100);  //Enable deadtime on PWM0A and PWM0B with red = (656)*100ns & fed = (67)*100ns on PWM0A and PWM0B generated from PWM0A
+    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);   //Enable deadtime on PWM2A and PWM2B with red = (1000)*100ns on PWM2A
+    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);        //Enable deadtime on PWM1A and PWM1B with fed = (2000)*100ns on PWM1B
+    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);  //Enable deadtime on PWM0A and PWM0B with red = (656)*100ns & fed = (67)*100ns on PWM0A and PWM0B generated from PWM0A
     //use mcpwm_deadtime_disable function to disable deadtime on mcpwm timer on which it was enabled
 #endif
 
@@ -302,14 +352,148 @@ static void mcpwm_example_config(void *arg)
 
 }
 
+void init_uart(void) {
+    const uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
+    };
+    // We won't use a buffer for sending data.
+	uart_driver_install(UART_NUM_2, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+    uart_param_config(UART_NUM_2, &uart_config);
+    uart_set_pin(UART_NUM_2, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+}
+
+float FREQUENCIA_GLOBAL = 60;
+float delta_omega_t(void){
+	float w_t = (FREQUENCIA_GLOBAL * BLDC_SPEED_UPDATE_PERIOD_US * 0.000001 * 360);
+	return w_t;
+}
+
+
+int sendData(const char* logName, const char* data)
+{
+    const int len = strlen(data);
+    const int txBytes = uart_write_bytes(UART_NUM_2, data, len);
+    //ESP_LOGI(logName, "Wrote %d bytes", txBytes);
+    return txBytes;
+}
+
+int string_comands_esp(char * input_str){
+	char * token;
+	token = strtok(input_str, ";");
+	int index=1;
+	float freq = 60.0;
+	float ampl = 50.0;
+	int modul = 1;
+	int ramp = 1;
+	float time_ramp = 1.0;
+	while (token != NULL) {
+		switch(index){
+			case (INDEX_FREQ):
+				freq = atof(token);
+				break;
+			case(INDEX_AMPL):
+				ampl = atof(token);
+				break;
+			case(INDEX_MODL):
+				modul = atoi(token);
+				break;
+			case(INDEX_RAMP):
+				ramp = atoi(token);
+			break;
+			case(INDEX_TMRA):
+				time_ramp = atoi(token);
+				break;
+		}
+	    token = strtok(NULL, ";");
+	    index++;
+	  }
+	config_comand_esp(freq, ampl, modul, ramp, time_ramp);
+	return 0;
+
+}
+
+void config_comand_esp(float freq, float ampl, int modul, int ramp, float time_ramp){
+	float actual_freq = FREQUENCIA_GLOBAL;
+	float delta_freq = (freq - actual_freq) / (float) DIVISIONS_RAMPA;
+	float actual_ampl = args[arg_amplitude];
+	float delta_ampl_aux = (ampl -  actual_ampl) / (float) DIVISIONS_RAMPA;
+	rampa_args[delta_fr_rmp] = delta_freq;
+	rampa_args[delta_ampl_rmp] = delta_ampl_aux;
+	rampa_args[ampl_final_rmp] = ampl;
+	rampa_args[freq_final_rmp] = freq;
+    args[arg_modulation] = modul;
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer_rampa, find_time_couter_ramap(time_ramp)));
+}
+
+void update_rampa(float * rampa_args){
+
+
+	FREQUENCIA_GLOBAL = FREQUENCIA_GLOBAL + rampa_args[delta_fr_rmp];
+	delta_freq = delta_omega_t();
+	args[arg_amplitude] = args[arg_amplitude] + rampa_args[delta_ampl_rmp];
+
+	if(rampa_args[ramp_index] >= DIVISIONS_RAMPA){
+		FREQUENCIA_GLOBAL = rampa_args[freq_final_rmp];
+		args[arg_amplitude] = rampa_args[ampl_final_rmp];
+		ESP_ERROR_CHECK(esp_timer_stop(periodic_timer_rampa));
+		rampa_args[ramp_index] = 0;
+
+	}
+	rampa_args[delta_ampl_rmp] = rampa_args[delta_ampl_rmp] + 1;
+}
+
+static void tx_task(void *arg)
+{
+    static const char *TX_TASK_TAG = "TX_TASK";
+    esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
+    while (1) {
+    	printf("Hello");
+        sendData(TX_TASK_TAG, "Hello world");
+        vTaskDelay(2500 / portTICK_PERIOD_MS);
+    }
+}
+
+static void rx_task(void *arg)
+{
+    static const char *RX_TASK_TAG = "RX_TASK";
+    esp_log_level_set(RX_TASK_TAG, ESP_LOG_INFO);
+    uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE+1);
+    char string[RX_BUF_SIZE+1];
+    int rxBytes=1;
+
+    while (1) {
+    	vTaskDelay(1000/ portTICK_PERIOD_MS);
+        rxBytes = uart_read_bytes(UART_NUM_2, data, RX_BUF_SIZE, 10/ portTICK_PERIOD_MS);
+        if (rxBytes > 0) {
+
+        	vTaskDelay(100 / portTICK_PERIOD_MS);
+            data[rxBytes] = 0;
+            ESP_LOGI(RX_TASK_TAG, "Read %d bytes: '%s'", rxBytes, data);
+            ESP_LOG_BUFFER_HEXDUMP(RX_TASK_TAG, data, rxBytes, ESP_LOG_INFO);
+
+//            for(int i = 0;i<rxBytes;i++){
+//            	string[i] = data[i];
+//            }
+            string_comands_esp((char *)data);
+            printf("\n%s\n",data);
+
+        }
+    }
+    free(data);
+}
+
 void update_vel_motor(int *args){
-	int *angle = &args[arg_angle];
+	float *angle = &args[arg_angle];
 	int *amplitude = &args[arg_amplitude];
 	int *type_modulation = &args[arg_modulation];
 	if(*angle >= 360){
 		*angle = 0;
 	}
-
 
 	switch(*type_modulation){
 		case SPWM:
@@ -330,17 +514,27 @@ void update_vel_motor(int *args){
 		case DPWMMIN:
 			gen_DPWMMIN(*angle, *amplitude);
 			break;
+		case DPWM0:
+			gen_DPWMM(*angle, *amplitude, 0);
+			break;
+		case DPWM1:
+			gen_DPWMM(*angle, *amplitude, 1);
+			break;
+		case DPWM2:
+			gen_DPWMM(*angle, *amplitude, 2);
+			break;
+		case DPWM3:
+			gen_DPWMM(*angle, *amplitude, 3);
+			break;
 		default:
 			gen_SPWM(*angle, *amplitude);
 			break;
-
 	}
-	*angle += 8;
+	*angle += delta_freq;
 
 }
 
 void gen_SPWM(int angle, float amplitude){
-
 	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
 	float duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5;
@@ -356,22 +550,38 @@ void gen_SPWM(int angle, float amplitude){
 void gen_SVPWM(int angle, float amplitude){
 	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
-	float duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + 0.5* amplitude + gen_triangle(angle, amplitude) + 0.5* amplitude;
-	float duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + 0.5* amplitude + gen_triangle(angle, amplitude);
-	float duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + 0.5* amplitude + gen_triangle(angle, amplitude);
+	float sin_a = sin(rad_angle);
+	float sin_b = sin(rad_angle + phase_angle);
+	float sin_c = sin(rad_angle - phase_angle);
+	float voff = ((fmax(fmax(sin_a, sin_b), sin_c)) + (fmin(fmin(sin_a, sin_b), sin_c))) / 2;
+	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + 0.5 * amplitude - voff * amplitude * 0.5;
+	float duty_cycle_sinal_phase_b = amplitude * sin_b  * 0.5 + 0.5 * amplitude - voff * amplitude * 0.5;
+	float duty_cycle_sinal_phase_c = amplitude * sin_b * 0.5 + 0.5 * amplitude -  voff * amplitude * 0.5;
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
 }
 
-void gen_THIPWM(int angle, float amplitude, float amplitude_armonic){
+void gen_THIPWM(int angle, float amplitude, float amplitude_harmonic){
 	float rad_angle = angle * M_PI / 180;
 	float phase_angle =  (120) * M_PI / 180;
-	float duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle) / amplitude_armonic;
-	float duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle + phase_angle) / amplitude_armonic;
-	float duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle - phase_angle) / amplitude_armonic;
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+	float duty_cycle_sinal_phase_a = 0;
+	float duty_cycle_sinal_phase_b = 0;
+	float duty_cycle_sinal_phase_c = 0;
+	if (amplitude_harmonic == 4){
+		if(amplitude > 90){
+			amplitude = 90;
+		}
+		duty_cycle_sinal_phase_a = (amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + (amplitude * sin(3*rad_angle)) / amplitude_harmonic) / 1.1;
+		duty_cycle_sinal_phase_b = (amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + (amplitude * sin(3*rad_angle + phase_angle)) / amplitude_harmonic) / 1.1;
+		duty_cycle_sinal_phase_c = (amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + (amplitude * sin(3*rad_angle - phase_angle)) / amplitude_harmonic) / 1.1;
+	}else{
+		duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle) / amplitude_harmonic;
+		duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle + phase_angle) / amplitude_harmonic;
+		duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle - phase_angle ) / amplitude_harmonic;
+	}
+	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
@@ -383,10 +593,10 @@ void gen_DPWMMAX(int angle, float amplitude){
 	float sin_a = sin(rad_angle);
 	float sin_b = sin(rad_angle + phase_angle);
 	float sin_c = sin(rad_angle - phase_angle);
-	float max_sin = fmax(fmax(sin_a, sin_b), sin_c);
-	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + amplitude * 0.5 - max_sin * 0.25 * amplitude;
-	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + amplitude * 0.5 - max_sin * 0.25 * amplitude;
-	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + amplitude * 0.5 - max_sin * 0.25 * amplitude;
+	float max_sin = 1 - fmax(fmax(sin_a, sin_b), sin_c);
+	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + amplitude * 0.5 + max_sin * 0.50 * amplitude;
+	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + amplitude * 0.5 + max_sin * 0.50 * amplitude;
+	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + amplitude * 0.5 + max_sin * 0.50 * amplitude;
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
@@ -399,7 +609,7 @@ void gen_DPWMMIN(int angle, float amplitude){
 	float sin_a = sin(rad_angle);
 	float sin_b = sin(rad_angle + phase_angle);
 	float sin_c = sin(rad_angle - phase_angle);
-	float min_sin = fmax(fmin(sin_a, sin_b), sin_c);
+	float min_sin = 1 + fmin(fmin(sin_a, sin_b), sin_c);
 	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + amplitude * 0.5 - min_sin * 0.5 * amplitude;
 	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + amplitude * 0.5 - min_sin * 0.5 * amplitude;
 	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + amplitude * 0.5 - min_sin * 0.5 * amplitude;
@@ -408,53 +618,80 @@ void gen_DPWMMIN(int angle, float amplitude){
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 }
 
-
-float gen_triangle(int angle, int amplitude){
-
-	int relative_angle = angle;
-	float amplitude_triangle;
-	if(angle <= 30){
-		relative_angle = angle;
-	}
-	else if(angle > 30 && angle <= 90){
-		relative_angle = 60 - angle;
-	}
-	else if(angle > 90 && angle <= 150){
-		relative_angle = -120 + angle;
-	}
-	else if(angle > 150 && angle <= 210){
-		relative_angle = 180 - angle;
-	}
-	else if(angle > 210 && angle <= 270){
-		relative_angle = -240 + angle;
-	}
-	else if(angle > 270 && angle <= 330){
-		relative_angle = 300 - angle;
+void gen_DPWMM(int angle, float amplitude, int type_modulation){
+	float rad_angle = angle * M_PI / 180;
+	float phase_angle =  (120) * M_PI / 180;
+	float sin_a = sin(rad_angle);
+	float sin_b = sin(rad_angle + phase_angle);
+	float sin_c = sin(rad_angle - phase_angle);
+	float sin_delta = 0;
+	float delta_angle = 0;
+	float mi_modulation = 0;
+	if(type_modulation == 0){
+		delta_angle = 30;
+	}else if(type_modulation == 1){
+		delta_angle = 60;
+	}else if(type_modulation == 2){
+		delta_angle = 90;
 	}
 	else{
-		relative_angle = -360 + angle;
+		delta_angle = 120;
+	}
+	if(angle >= (0 + delta_angle) && angle <= (60 + delta_angle)){
+		sin_delta = (1 - mi_modulation) - sin_a ;
+	}else if(angle > (60 + delta_angle) && angle <= (120 + delta_angle)){
+		sin_delta = (1 - mi_modulation) + sin_b ;
+	}else if(angle > (120 + delta_angle) && angle <= (180 + delta_angle)){
+		sin_delta = (1 - mi_modulation) - sin_c ;
+	}else if(angle > (180 + delta_angle) && angle <= (240 + delta_angle)){
+		sin_delta = (1 - mi_modulation) + sin_a ;
+	}else if(angle > (240 + delta_angle) && angle <= (300 + delta_angle)){
+		sin_delta = (1 - mi_modulation) - sin_b ;
+	}else if (angle > (300 + delta_angle) && angle <= (360 + delta_angle)){
+		sin_delta = (1 - mi_modulation) + sin_c ;
 	}
 
-	amplitude_triangle = (((float)relative_angle) / 30) * amplitude * 0.25;
-
-	return amplitude_triangle;
+	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + amplitude * 0.5 + sin_delta * 0.5 * amplitude;
+	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + amplitude * 0.5 + sin_delta * 0.5 * amplitude;
+	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + amplitude * 0.5 + sin_delta * 0.5 * amplitude;
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
 }
 
-int args[3];
+
+float find_time_couter_ramap(float time_rampa){
+	float value_counter = BLDC_SPEED_UPDATE_PERIOD_US_RAMPA * (time_rampa / (BLDC_SPEED_UPDATE_PERIOD_US_RAMPA * DIVISIONS_RAMPA));
+	return value_counter;
+
+}
+
 
 void app_main(void)
 {
+    init_uart();
+	delta_freq = delta_omega_t();
     printf("Testing MCPWM...\n");
     printf("Testing MCPWM...\n");
     int *arg;
     mcpwm_example_config(&arg);
     printf("After config...\n");
     int valor = 0;
+    FREQUENCIA_GLOBAL = 0;
+    float freq_inicial = 60;
+    float ampl_inicial = 50;
+    float time_rampa_incial = 5;
+    args[arg_angle] = 0.0;
+    args[arg_amplitude] = 0;
+    args[arg_modulation] = SPWM;
 
-    args[arg_angle] = 0;
-    args[arg_amplitude] = 50;
-    args[arg_modulation] = SVPWM;
+    rampa_args[delta_fr_rmp] = freq_inicial / DIVISIONS_RAMPA; // valor calculado partindo de zero até 60 com 20 divisões
+	rampa_args[freq_final_rmp] = freq_inicial;
+	rampa_args[delta_ampl_rmp] = ampl_inicial / DIVISIONS_RAMPA; // valor calculado partindo de zero até 50% com 20 divisões
+	rampa_args[ampl_final_rmp] = ampl_inicial;
+	rampa_args[ramp_index] = 0;
+    //rampa_args
     esp_timer_handle_t periodic_timer = NULL;
     const esp_timer_create_args_t periodic_timer_args = {
         .callback = update_vel_motor,
@@ -464,13 +701,21 @@ void app_main(void)
 
     printf("before creation timers...\n");
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
+    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args_rampa, &periodic_timer_rampa));
+
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, BLDC_SPEED_UPDATE_PERIOD_US));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer_rampa, find_time_couter_ramap(time_rampa_incial)));
     //cap_queue = xQueueCreate(1, sizeof(capture)); //comment if you don't want to use capture module
     current_cap_value = (uint32_t *)malloc(CAP_SIG_NUM*sizeof(uint32_t)); //comment if you don't want to use capture module
     previous_cap_value = (uint32_t *)malloc(CAP_SIG_NUM*sizeof(uint32_t));  //comment if you don't want to use capture module
+
     printf("after creation timers...\n");
     //xTaskCreate(disp_captured_signal, "mcpwm_config", 4096, NULL, 5, NULL);  //comment if you don't want to use capture module
-    xTaskCreate(gpio_test_signal, "gpio_test_signal", 4096, NULL, 5, NULL); //comment if you don't want to use capture module
+
+    //xTaskCreate(gpio_test_signal, "gpio_test_signal", 4096, NULL, 5, NULL); //comment if you don't want to use capture module
+
+    xTaskCreate(rx_task, "uart_rx_task", 1024*2, NULL, 5, NULL);
+    xTaskCreate(tx_task, "uart_tx_task", 1024*2, NULL, 4, NULL);
     //xTaskCreate(mcpwm_example_config, "mcpwm_example_config", 4096, NULL, 5, NULL);
 
     //timer_config_t config = {
