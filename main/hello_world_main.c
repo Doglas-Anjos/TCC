@@ -95,6 +95,9 @@
 #define ramp_index			4
 
 
+#define number_words_rampa  5
+
+
 
 #define TXD_PIN (GPIO_NUM_17)
 #define RXD_PIN (GPIO_NUM_16)
@@ -374,14 +377,6 @@ float delta_omega_t(void){
 }
 
 
-int sendData(const char* logName, const char* data)
-{
-    const int len = strlen(data);
-    const int txBytes = uart_write_bytes(UART_NUM_2, data, len);
-    //ESP_LOGI(logName, "Wrote %d bytes", txBytes);
-    return txBytes;
-}
-
 int string_comands_esp(char * input_str){
 	char * token;
 	token = strtok(input_str, ";");
@@ -391,6 +386,7 @@ int string_comands_esp(char * input_str){
 	int modul = 1;
 	int ramp = 1;
 	float time_ramp = 1.0;
+
 	while (token != NULL) {
 		switch(index){
 			case (INDEX_FREQ):
@@ -404,16 +400,21 @@ int string_comands_esp(char * input_str){
 				break;
 			case(INDEX_RAMP):
 				ramp = atoi(token);
-			break;
+				break;
 			case(INDEX_TMRA):
 				time_ramp = atoi(token);
 				break;
 		}
 	    token = strtok(NULL, ";");
 	    index++;
-	  }
-	config_comand_esp(freq, ampl, modul, ramp, time_ramp);
-	return 0;
+	 }
+
+	if((index - 1) == number_words_rampa){//verifica se informação enviada pelo celular condiz com o numero de palavras necessário
+		config_comand_esp(freq, ampl, modul, ramp, time_ramp);
+		return true;
+	}else{
+		return false;
+	}
 
 }
 
@@ -453,13 +454,20 @@ void update_rampa(float * rampa_args){
 	rampa_args[ramp_index] = rampa_args[ramp_index] + 1;
 }
 
+int sendData(const char* logName, const char* data)
+{
+    const int len = strlen(data);
+    const int txBytes = uart_write_bytes(UART_NUM_2, data, len);
+    ESP_LOGI(logName, "Wrote %d bytes", txBytes);
+    return txBytes;
+}
+
 static void tx_task(void *arg)
 {
     static const char *TX_TASK_TAG = "TX_TASK";
     esp_log_level_set(TX_TASK_TAG, ESP_LOG_INFO);
     while (1) {
-    	printf("Hello");
-        sendData(TX_TASK_TAG, "Hello world");
+        sendData(TX_TASK_TAG, "ON\n");
         vTaskDelay(2500 / portTICK_PERIOD_MS);
     }
 }
@@ -471,7 +479,7 @@ static void rx_task(void *arg)
     uint8_t* data = (uint8_t*) malloc(RX_BUF_SIZE+1);
     char string[RX_BUF_SIZE+1];
     int rxBytes=1;
-
+    int status;
     while (1) {
     	vTaskDelay(1000/ portTICK_PERIOD_MS);
         rxBytes = uart_read_bytes(UART_NUM_2, data, RX_BUF_SIZE, 10/ portTICK_PERIOD_MS);
@@ -486,9 +494,14 @@ static void rx_task(void *arg)
 //            	string[i] = data[i];
 //            }
             vTaskDelay(1000/ portTICK_PERIOD_MS);
-            string_comands_esp((char *)data);
-            printf("\n%s\n",data);
+            status = string_comands_esp((char *)data);
+            vTaskDelay(1000/ portTICK_PERIOD_MS);
 
+            if(status==true){
+            	sendData(RX_TASK_TAG, "OK!");
+            }else{
+            	sendData(RX_TASK_TAG, "ERROR!");
+            }
         }
     }
     free(data);
@@ -580,13 +593,13 @@ void gen_THIPWM(int angle, float amplitude, float amplitude_harmonic){
 		if(amplitude > 90){
 			amplitude = 90;
 		}
-		duty_cycle_sinal_phase_a = (amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + (amplitude * sin(3*rad_angle)) / amplitude_harmonic) / 1.1;
-		duty_cycle_sinal_phase_b = (amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + (amplitude * sin(3*rad_angle + phase_angle)) / amplitude_harmonic) / 1.1;
-		duty_cycle_sinal_phase_c = (amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + (amplitude * sin(3*rad_angle - phase_angle)) / amplitude_harmonic) / 1.1;
+		duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + (0.5 * amplitude * sin(3*rad_angle)) / amplitude_harmonic;
+		duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + (0.5 * amplitude * sin(3*rad_angle + phase_angle)) / amplitude_harmonic;
+		duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + (0.5 * amplitude * sin(3*rad_angle - phase_angle)) / amplitude_harmonic;
 	}else{
-		duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle) / amplitude_harmonic;
-		duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle + phase_angle) / amplitude_harmonic;
-		duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + amplitude * sin(3*rad_angle - phase_angle ) / amplitude_harmonic;
+		duty_cycle_sinal_phase_a = amplitude * sin(rad_angle) * 0.5 + amplitude * 0.5 + 0.5 * amplitude * sin(3*rad_angle) / amplitude_harmonic;
+		duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + amplitude * 0.5 + 0.5 * amplitude * sin(3*rad_angle + phase_angle) / amplitude_harmonic;
+		duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + amplitude * 0.5 + 0.5 * amplitude * sin(3*rad_angle - phase_angle ) / amplitude_harmonic;
 	}
 	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
     mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
