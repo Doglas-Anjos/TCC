@@ -82,7 +82,7 @@
 #define INDEX_RAMP		4
 #define INDEX_TMRA		5
 
-#define	DIVISIONS_RAMPA 200
+#define	DIVISIONS_RAMPA 20
 
 #define arg_angle		0
 #define arg_amplitude	1
@@ -428,6 +428,11 @@ void config_comand_esp(float freq, float ampl, int modul, int ramp, float time_r
 	rampa_args[freq_final_rmp] = freq;
     args[arg_modulation] = modul;
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer_rampa, find_time_couter_ramap(time_ramp)));
+//	args[arg_modulation] = modul;
+//	FREQUENCIA_GLOBAL = freq;
+//	delta_freq = delta_omega_t();
+//	args[arg_amplitude] = ampl;
+
 }
 
 void update_rampa(float * rampa_args){
@@ -436,15 +441,16 @@ void update_rampa(float * rampa_args){
 	FREQUENCIA_GLOBAL = FREQUENCIA_GLOBAL + rampa_args[delta_fr_rmp];
 	delta_freq = delta_omega_t();
 	args[arg_amplitude] = args[arg_amplitude] + rampa_args[delta_ampl_rmp];
-
 	if(rampa_args[ramp_index] >= DIVISIONS_RAMPA){
+
 		FREQUENCIA_GLOBAL = rampa_args[freq_final_rmp];
 		args[arg_amplitude] = rampa_args[ampl_final_rmp];
 		ESP_ERROR_CHECK(esp_timer_stop(periodic_timer_rampa));
 		rampa_args[ramp_index] = 0;
+		printf("%d\n",(int)rampa_args[ramp_index]);
 
 	}
-	rampa_args[delta_ampl_rmp] = rampa_args[delta_ampl_rmp] + 1;
+	rampa_args[ramp_index] = rampa_args[ramp_index] + 1;
 }
 
 static void tx_task(void *arg)
@@ -479,6 +485,7 @@ static void rx_task(void *arg)
 //            for(int i = 0;i<rxBytes;i++){
 //            	string[i] = data[i];
 //            }
+            vTaskDelay(1000/ portTICK_PERIOD_MS);
             string_comands_esp((char *)data);
             printf("\n%s\n",data);
 
@@ -662,7 +669,7 @@ void gen_DPWMM(int angle, float amplitude, int type_modulation){
 
 
 float find_time_couter_ramap(float time_rampa){
-	float value_counter = BLDC_SPEED_UPDATE_PERIOD_US_RAMPA * (time_rampa / (BLDC_SPEED_UPDATE_PERIOD_US_RAMPA * DIVISIONS_RAMPA));
+	float value_counter = BLDC_SPEED_UPDATE_PERIOD_US_RAMPA * (time_rampa / (BLDC_SPEED_UPDATE_PERIOD_US_RAMPA * DIVISIONS_RAMPA * 0.000001));
 	return value_counter;
 
 }
@@ -703,8 +710,12 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args_rampa, &periodic_timer_rampa));
 
-    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, BLDC_SPEED_UPDATE_PERIOD_US));
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer_rampa, find_time_couter_ramap(time_rampa_incial)));
+    //vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, BLDC_SPEED_UPDATE_PERIOD_US));
+
+
     //cap_queue = xQueueCreate(1, sizeof(capture)); //comment if you don't want to use capture module
     current_cap_value = (uint32_t *)malloc(CAP_SIG_NUM*sizeof(uint32_t)); //comment if you don't want to use capture module
     previous_cap_value = (uint32_t *)malloc(CAP_SIG_NUM*sizeof(uint32_t));  //comment if you don't want to use capture module
