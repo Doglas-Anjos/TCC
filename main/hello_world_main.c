@@ -43,18 +43,18 @@
 #define CAP2_INT_EN BIT(29)  //Capture 2 interrupt bit
 #define TIMER_DIVIDER   (1)
 
-#define GPIO_PWM0A_OUT 23   //Set GPIO 19 as PWM0A
+#define GPIO_PWM0A_OUT 21   //Set GPIO 19 as PWM0A
 #define GPIO_PWM0B_OUT 22   //Set GPIO 18 as PWM0B
 
-#define GPIO_PWM1A_OUT 21   //Set GPIO 17 as PWM1A
-#define GPIO_PWM1B_OUT 19   //Set GPIO 16 as PWM1B
+#define GPIO_PWM1A_OUT 23   //Set GPIO 17 as PWM1A
+#define GPIO_PWM1B_OUT 25   //Set GPIO 16 as PWM1B
 
-#define GPIO_PWM2A_OUT 33   //Set GPIO 15 as PWM2A
-#define GPIO_PWM2B_OUT 32   //Set GPIO 14 as PWM2B
+#define GPIO_PWM2A_OUT 26   //Set GPIO 15 as PWM2A
+#define GPIO_PWM2B_OUT 27   //Set GPIO 14 as PWM2B
 
 #define GPIO_CAP0_IN   36   //Set GPIO 23 as  CAP0
-#define GPIO_CAP1_IN   25   //Set GPIO 25 as  CAP1
-#define GPIO_CAP2_IN   26   //Set GPIO 26 as  CAP2
+#define GPIO_CAP1_IN   19   //Set GPIO 25 as  CAP1
+#define GPIO_CAP2_IN   33   //Set GPIO 26 as  CAP2
 #define GPIO_SYNC0_IN   2   //Set GPIO 02 as SYNC0
 #define GPIO_SYNC1_IN   4   //Set GPIO 04 as SYNC1
 #define GPIO_SYNC2_IN   5   //Set GPIO 05 as SYNC2
@@ -154,21 +154,21 @@ static void mcpwm_example_gpio_initialize(void)
 {
     printf("initializing mcpwm gpio...\n");
 #if MCPWM_GPIO_INIT
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0A, GPIO_PWM0A_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM0B, GPIO_PWM0B_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM1A, GPIO_PWM1A_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM1B, GPIO_PWM1B_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM2A, GPIO_PWM2A_OUT);
-    mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM2B, GPIO_PWM2B_OUT);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_CAP_0, GPIO_CAP0_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_CAP_1, GPIO_CAP1_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_CAP_2, GPIO_CAP2_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_SYNC_0, GPIO_SYNC0_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_SYNC_1, GPIO_SYNC1_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_SYNC_2, GPIO_SYNC2_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_FAULT_0, GPIO_FAULT0_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_FAULT_1, GPIO_FAULT1_IN);
-    //mcpwm_gpio_init(MCPWM_UNIT_0, MCPWM_FAULT_2, GPIO_FAULT2_IN);
+    mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM0A, GPIO_PWM0A_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM0B, GPIO_PWM0B_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM1A, GPIO_PWM1A_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM1B, GPIO_PWM1B_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM2A, GPIO_PWM2A_OUT);
+    mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM2B, GPIO_PWM2B_OUT);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_CAP_0, GPIO_CAP0_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_CAP_1, GPIO_CAP1_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_CAP_2, GPIO_CAP2_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_0, GPIO_SYNC0_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_1, GPIO_SYNC1_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_SYNC_2, GPIO_SYNC2_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_FAULT_0, GPIO_FAULT0_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_FAULT_1, GPIO_FAULT1_IN);
+    //mcpwm_gpio_init(MCPWM_UNIT_1, MCPWM_FAULT_2, GPIO_FAULT2_IN);
 #else
     mcpwm_pin_config_t pin_config = {
         .mcpwm0a_out_num = GPIO_PWM0A_OUT,
@@ -187,7 +187,7 @@ static void mcpwm_example_gpio_initialize(void)
         .mcpwm_cap1_in_num   = -1,
         .mcpwm_cap2_in_num   = -1
     };
-    mcpwm_set_pin(MCPWM_UNIT_0, &pin_config);
+    mcpwm_set_pin(MCPWM_UNIT_1, &pin_config);
 #endif
     //gpio_pulldown_en(GPIO_CAP0_IN);    //Enable pull down on CAP0   signal
     //gpio_pulldown_en(GPIO_CAP1_IN);    //Enable pull down on CAP1   signal
@@ -241,31 +241,31 @@ static void IRAM_ATTR isr_handler(void)
 {
     uint32_t mcpwm_intr_status;
     capture evt;
-    mcpwm_intr_status = MCPWM[MCPWM_UNIT_0]->int_st.val; //Read interrupt status
+    mcpwm_intr_status = MCPWM[MCPWM_UNIT_1]->int_st.val; //Read interrupt status
     //calculate the interval in the ISR,
     //so that the interval will be always correct even when cap_queue is not handled in time and overflow.
     if (mcpwm_intr_status & CAP0_INT_EN) { //Check for interrupt on rising edge on CAP0 signal
-        current_cap_value[0] = mcpwm_capture_signal_get_value(MCPWM_UNIT_0, MCPWM_SELECT_CAP0); //get capture signal counter value
+        current_cap_value[0] = mcpwm_capture_signal_get_value(MCPWM_UNIT_1, MCPWM_SELECT_CAP0); //get capture signal counter value
         evt.capture_signal = (current_cap_value[0] - previous_cap_value[0]) / (rtc_clk_apb_freq_get() / 1000000);
         previous_cap_value[0] = current_cap_value[0];
         evt.sel_cap_signal = MCPWM_SELECT_CAP0;
         xQueueSendFromISR(cap_queue, &evt, NULL);
     }
     if (mcpwm_intr_status & CAP1_INT_EN) { //Check for interrupt on rising edge on CAP0 signal
-        current_cap_value[1] = mcpwm_capture_signal_get_value(MCPWM_UNIT_0, MCPWM_SELECT_CAP1); //get capture signal counter value
+        current_cap_value[1] = mcpwm_capture_signal_get_value(MCPWM_UNIT_1, MCPWM_SELECT_CAP1); //get capture signal counter value
         evt.capture_signal = (current_cap_value[1] - previous_cap_value[1]) / (rtc_clk_apb_freq_get() / 1000000);
         previous_cap_value[1] = current_cap_value[1];
         evt.sel_cap_signal = MCPWM_SELECT_CAP1;
         xQueueSendFromISR(cap_queue, &evt, NULL);
     }
     if (mcpwm_intr_status & CAP2_INT_EN) { //Check for interrupt on rising edge on CAP0 signal
-        current_cap_value[2] = mcpwm_capture_signal_get_value(MCPWM_UNIT_0, MCPWM_SELECT_CAP2); //get capture signal counter value
+        current_cap_value[2] = mcpwm_capture_signal_get_value(MCPWM_UNIT_1, MCPWM_SELECT_CAP2); //get capture signal counter value
         evt.capture_signal = (current_cap_value[2] - previous_cap_value[2]) / (rtc_clk_apb_freq_get() / 1000000);
         previous_cap_value[2] = current_cap_value[2];
         evt.sel_cap_signal = MCPWM_SELECT_CAP2;
         xQueueSendFromISR(cap_queue, &evt, NULL);
     }
-    MCPWM[MCPWM_UNIT_0]->int_clr.val = mcpwm_intr_status;
+    MCPWM[MCPWM_UNIT_1]->int_clr.val = mcpwm_intr_status;
 }
 #endif
 
@@ -281,23 +281,23 @@ static void mcpwm_example_config(void *arg)
     printf("Configuring Initial Parameters of mcpwm...\n");
     mcpwm_config_t pwm_config;
     pwm_config.frequency = 20000;    //frequency = 1000Hz
-    pwm_config.cmpr_a = 50.0;       //duty cycle of PWMxA = 60.0%
-    pwm_config.cmpr_b = 50.0;       //duty cycle of PWMxb = 50.0%
+    pwm_config.cmpr_a = 0.0;       //duty cycle of PWMxA = 60.0%
+    pwm_config.cmpr_b = 0.0;       //duty cycle of PWMxb = 50.0%
     pwm_config.counter_mode = MCPWM_UP_DOWN_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_0, &pwm_config);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_init(MCPWM_UNIT_1, MCPWM_TIMER_0, &pwm_config);   //Configure PWM0A & PWM0B with above settings
     pwm_config.frequency = 20000;     //frequency = 500Hz
-    pwm_config.cmpr_a = 50.0;       //duty cycle of PWMxA = 45.9%
-    pwm_config.cmpr_b = 50;    //duty cycle of PWMxb = 07.0%
+    pwm_config.cmpr_a = 0.0;       //duty cycle of PWMxA = 45.9%
+    pwm_config.cmpr_b = 0.0;    //duty cycle of PWMxb = 07.0%
     pwm_config.counter_mode = MCPWM_UP_DOWN_COUNTER;
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_1, &pwm_config);   //Configure PWM1A & PWM1B with above settings
+    mcpwm_init(MCPWM_UNIT_1, MCPWM_TIMER_1, &pwm_config);   //Configure PWM1A & PWM1B with above settings
     pwm_config.frequency = 20000;     //frequency = 400Hz
-    pwm_config.cmpr_a = 50;       //duty cycle of PWMxA = 23.2%
-    pwm_config.cmpr_b = 50;       //duty cycle of PWMxb = 97.0%
+    pwm_config.cmpr_a = 0.0;       //duty cycle of PWMxA = 23.2%
+    pwm_config.cmpr_b = 0.0;       //duty cycle of PWMxb = 97.0%
     pwm_config.counter_mode = MCPWM_UP_DOWN_COUNTER; //frequency is half when up down count mode is set i.e. SYMMETRIC PWM
     pwm_config.duty_mode = MCPWM_DUTY_MODE_0;
-    mcpwm_init(MCPWM_UNIT_0, MCPWM_TIMER_2, &pwm_config);   //Configure PWM2A & PWM2B with above settings
+    mcpwm_init(MCPWM_UNIT_1, MCPWM_TIMER_2, &pwm_config);   //Configure PWM2A & PWM2B with above settings
 
 #if MCPWM_EN_CARRIER
     //3. carrier configuration
@@ -309,8 +309,8 @@ static void mcpwm_example_config(void *arg)
     chop_config.carrier_os_mode = MCPWM_ONESHOT_MODE_EN; //If one shot mode is enabled then set pulse width, if disabled no need to set pulse width
     chop_config.pulse_width_in_os = 3;      //first pulse width = (3 + 1)*carrier_period
     chop_config.carrier_ivt_mode = MCPWM_CARRIER_OUT_IVT_EN; //output signal inversion enable
-    mcpwm_carrier_init(MCPWM_UNIT_0, MCPWM_TIMER_2, &chop_config);  //Enable carrier on PWM2A and PWM2B with above settings
-    mcpwm_carrier_init(MCPWM_UNIT_0, MCPWM_TIMER_2, &chop_config);  //Enable carrier on PWM2A and PWM2B with above settings
+    mcpwm_carrier_init(MCPWM_UNIT_1, MCPWM_TIMER_2, &chop_config);  //Enable carrier on PWM2A and PWM2B with above settings
+    mcpwm_carrier_init(MCPWM_UNIT_1, MCPWM_TIMER_2, &chop_config);  //Enable carrier on PWM2A and PWM2B with above settings
     //use mcpwm_carrier_disable function to disable carrier on mcpwm timer on which it was enabled
 #endif
 
@@ -318,9 +318,9 @@ static void mcpwm_example_config(void *arg)
     //4. deadtime configuration
     //comment if you don't want to use deadtime submodule
     //add rising edge delay or falling edge delay. There are 8 different types, each explained in mcpwm_deadtime_type_t in mcpwm.h
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);   //Enable deadtime on PWM2A and PWM2B with red = (1000)*100ns on PWM2A
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);        //Enable deadtime on PWM1A and PWM1B with fed = (2000)*100ns on PWM1B
-    mcpwm_deadtime_enable(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);  //Enable deadtime on PWM0A and PWM0B with red = (656)*100ns & fed = (67)*100ns on PWM0A and PWM0B generated from PWM0A
+    mcpwm_deadtime_enable(MCPWM_UNIT_1, MCPWM_TIMER_2, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);   //Enable deadtime on PWM2A and PWM2B with red = (1000)*100ns on PWM2A
+    mcpwm_deadtime_enable(MCPWM_UNIT_1, MCPWM_TIMER_1, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);        //Enable deadtime on PWM1A and PWM1B with fed = (2000)*100ns on PWM1B
+    mcpwm_deadtime_enable(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, 10, 10);  //Enable deadtime on PWM0A and PWM0B with red = (656)*100ns & fed = (67)*100ns on PWM0A and PWM0B generated from PWM0A
     //use mcpwm_deadtime_disable function to disable deadtime on mcpwm timer on which it was enabled
 #endif
 
@@ -329,20 +329,20 @@ static void mcpwm_example_config(void *arg)
     //comment if you don't want to use fault submodule, also u can comment the fault gpio signals
     //whenever fault occurs you can configure mcpwm signal to either force low, force high or toggle.
     //in cycmode, as soon as fault condition is over, the mcpwm signal is resumed, whereas in oneshot mode you need to reset.
-    mcpwm_fault_init(MCPWM_UNIT_0, MCPWM_HIGH_LEVEL_TGR, MCPWM_SELECT_F0); //Enable FAULT, when high level occurs on FAULT0 signal
-    mcpwm_fault_init(MCPWM_UNIT_0, MCPWM_HIGH_LEVEL_TGR, MCPWM_SELECT_F1); //Enable FAULT, when high level occurs on FAULT1 signal
-    mcpwm_fault_init(MCPWM_UNIT_0, MCPWM_HIGH_LEVEL_TGR, MCPWM_SELECT_F2); //Enable FAULT, when high level occurs on FAULT2 signal
-    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_SELECT_F0, MCPWM_FORCE_MCPWMXA_HIGH, MCPWM_FORCE_MCPWMXB_LOW); //Action taken on PWM1A and PWM1B, when FAULT0 occurs
-    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_SELECT_F1, MCPWM_FORCE_MCPWMXA_LOW, MCPWM_FORCE_MCPWMXB_HIGH); //Action taken on PWM1A and PWM1B, when FAULT1 occurs
-    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_SELECT_F2, MCPWM_FORCE_MCPWMXA_HIGH, MCPWM_FORCE_MCPWMXB_LOW); //Action taken on PWM0A and PWM0B, when FAULT2 occurs
-    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_SELECT_F1, MCPWM_FORCE_MCPWMXA_LOW, MCPWM_FORCE_MCPWMXB_HIGH); //Action taken on PWM0A and PWM0B, when FAULT1 occurs
+    mcpwm_fault_init(MCPWM_UNIT_1, MCPWM_HIGH_LEVEL_TGR, MCPWM_SELECT_F0); //Enable FAULT, when high level occurs on FAULT0 signal
+    mcpwm_fault_init(MCPWM_UNIT_1, MCPWM_HIGH_LEVEL_TGR, MCPWM_SELECT_F1); //Enable FAULT, when high level occurs on FAULT1 signal
+    mcpwm_fault_init(MCPWM_UNIT_1, MCPWM_HIGH_LEVEL_TGR, MCPWM_SELECT_F2); //Enable FAULT, when high level occurs on FAULT2 signal
+    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_1, MCPWM_TIMER_1, MCPWM_SELECT_F0, MCPWM_FORCE_MCPWMXA_HIGH, MCPWM_FORCE_MCPWMXB_LOW); //Action taken on PWM1A and PWM1B, when FAULT0 occurs
+    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_1, MCPWM_TIMER_1, MCPWM_SELECT_F1, MCPWM_FORCE_MCPWMXA_LOW, MCPWM_FORCE_MCPWMXB_HIGH); //Action taken on PWM1A and PWM1B, when FAULT1 occurs
+    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_SELECT_F2, MCPWM_FORCE_MCPWMXA_HIGH, MCPWM_FORCE_MCPWMXB_LOW); //Action taken on PWM0A and PWM0B, when FAULT2 occurs
+    mcpwm_fault_set_oneshot_mode(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_SELECT_F1, MCPWM_FORCE_MCPWMXA_LOW, MCPWM_FORCE_MCPWMXB_HIGH); //Action taken on PWM0A and PWM0B, when FAULT1 occurs
 #endif
 
 #if MCPWM_EN_SYNC
     //6. Syncronization configuration
     //comment if you don't want to use sync submodule, also u can comment the sync gpio signals
     //here synchronization occurs on PWM1A and PWM1B
-    //mcpwm_sync_enable(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_SELECT_SYNC0, 0);    //Load counter value with 20% of period counter of mcpwm timer 1 when sync 0 occurs
+    //mcpwm_sync_enable(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_SELECT_SYNC0, 0);    //Load counter value with 20% of period counter of mcpwm timer 1 when sync 0 occurs
     mcpwm_sync_config_t  sync_config_t0;
     sync_config_t0.sync_sig = MCPWM_SELECT_TIMER0_SYNC;
     sync_config_t0.timer_val = 0;
@@ -350,20 +350,23 @@ static void mcpwm_example_config(void *arg)
 
     mcpwm_sync_config_t  sync_config_t1;
     sync_config_t1.sync_sig = MCPWM_SELECT_TIMER1_SYNC;
-    sync_config_t1.timer_val = 500;
+    sync_config_t1.timer_val = 0;
     sync_config_t1.count_direction = MCPWM_TIMER_DIRECTION_UP;
 
     mcpwm_sync_config_t  sync_config_t2;
     sync_config_t2.sync_sig = MCPWM_SELECT_TIMER2_SYNC;
-    sync_config_t2.timer_val = 800;
+    sync_config_t2.timer_val = 0;
     sync_config_t2.count_direction = MCPWM_TIMER_DIRECTION_UP;
-    ESP_ERROR_CHECK(mcpwm_sync_configure(MCPWM_UNIT_0, MCPWM_TIMER_0, &sync_config_t0));
-    ESP_ERROR_CHECK(mcpwm_sync_configure(MCPWM_UNIT_0, MCPWM_TIMER_1, &sync_config_t1));
-    ESP_ERROR_CHECK(mcpwm_sync_configure(MCPWM_UNIT_0, MCPWM_TIMER_2, &sync_config_t2));
+    ESP_ERROR_CHECK(mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_0, &sync_config_t0));
+    ESP_ERROR_CHECK(mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_1, &sync_config_t0));
+    ESP_ERROR_CHECK(mcpwm_sync_configure(MCPWM_UNIT_1, MCPWM_TIMER_2, &sync_config_t0));
+    mcpwm_set_timer_sync_output(MCPWM_UNIT_1,MCPWM_TIMER_0,MCPWM_SWSYNC_SOURCE_TEZ);
+    mcpwm_set_timer_sync_output(MCPWM_UNIT_1,MCPWM_TIMER_1,MCPWM_SWSYNC_SOURCE_TEZ);
+    mcpwm_set_timer_sync_output(MCPWM_UNIT_1,MCPWM_TIMER_2,MCPWM_SWSYNC_SOURCE_TEZ);
 
-    //mcpwm_sync_enable(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_SELECT_TIMER0_SYNC, 0);
-    //mcpwm_sync_enable(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_SELECT_TIMER1_SYNC, 0);
-    //mcpwm_sync_enable(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_SELECT_TIMER2_SYNC, 0);
+    //mcpwm_sync_enable(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_SELECT_TIMER0_SYNC, 0);
+    //mcpwm_sync_enable(MCPWM_UNIT_1, MCPWM_TIMER_1, MCPWM_SELECT_NO_INPUT, 0);
+    //mcpwm_sync_enable(MCPWM_UNIT_1, MCPWM_TIMER_2, MCPWM_SELECT_NO_INPUT, 0);
 
 
 #endif
@@ -374,12 +377,12 @@ static void mcpwm_example_config(void *arg)
     //configure CAP0, CAP1 and CAP2 signal to start capture counter on rising edge
     //we generate a gpio_test_signal of 20ms on GPIO 12 and connect it to one of the capture signal, the disp_captured_function displays the time between rising edge
     //In general practice you can connect Capture  to external signal, measure time between rising edge or falling edge and take action accordingly
-    mcpwm_capture_enable(MCPWM_UNIT_0, MCPWM_SELECT_CAP0, MCPWM_POS_EDGE, 0);  //capture signal on rising edge, prescale = 0 i.e. 800,000,000 counts is equal to one second
-    mcpwm_capture_enable(MCPWM_UNIT_0, MCPWM_SELECT_CAP2, MCPWM_POS_EDGE, 0);  //capture signal on rising edge, prescale = 0 i.e. 800,000,000 counts is equal to one second
-    mcpwm_capture_enable(MCPWM_UNIT_0, MCPWM_SELECT_CAP1, MCPWM_POS_EDGE, 0);  //capture signal on rising edge, prescale = 0 i.e. 800,000,000 counts is equal to one second
+    mcpwm_capture_enable(MCPWM_UNIT_1, MCPWM_SELECT_CAP0, MCPWM_POS_EDGE, 0);  //capture signal on rising edge, prescale = 0 i.e. 800,000,000 counts is equal to one second
+    mcpwm_capture_enable(MCPWM_UNIT_1, MCPWM_SELECT_CAP2, MCPWM_POS_EDGE, 0);  //capture signal on rising edge, prescale = 0 i.e. 800,000,000 counts is equal to one second
+    mcpwm_capture_enable(MCPWM_UNIT_1, MCPWM_SELECT_CAP1, MCPWM_POS_EDGE, 0);  //capture signal on rising edge, prescale = 0 i.e. 800,000,000 counts is equal to one second
     //enable interrupt, so each this a rising edge occurs interrupt is triggered
-    MCPWM[MCPWM_UNIT_0]->int_ena.val = CAP0_INT_EN | CAP1_INT_EN | CAP2_INT_EN;  //Enable interrupt on  CAP0, CAP1 and CAP2 signal
-    mcpwm_isr_register(MCPWM_UNIT_0, isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);  //Set ISR Handler
+    MCPWM[MCPWM_UNIT_1]->int_ena.val = CAP0_INT_EN | CAP1_INT_EN | CAP2_INT_EN;  //Enable interrupt on  CAP0, CAP1 and CAP2 signal
+    mcpwm_isr_register(MCPWM_UNIT_1, isr_handler, NULL, ESP_INTR_FLAG_IRAM, NULL);  //Set ISR Handler
 #endif
 
 }
@@ -620,16 +623,16 @@ void gen_SPWM(int angle, float amplitude){
 	float duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + 50;
 
 
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_A, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_GEN_B, duty_cycle_sinal_phase_a);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_GEN_A, duty_cycle_sinal_phase_a);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, MCPWM_GEN_A, duty_cycle_sinal_phase_a);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_GEN_A, duty_cycle_sinal_phase_a);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, MCPWM_GEN_A, duty_cycle_sinal_phase_a);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_A, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, MCPWM_GEN_B, duty_cycle_sinal_phase_a);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, MCPWM_GEN_A, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, MCPWM_GEN_A, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, MCPWM_GEN_A, duty_cycle_sinal_phase_c);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, MCPWM_GEN_A, duty_cycle_sinal_phase_c);
 
-    //mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, 50);   //Configure PWM0A & PWM0B with above settings
-   // mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, 50);
-    //mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, 50);
+    //mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, 0, 50);   //Configure PWM0A & PWM0B with above settings
+   // mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, 0, 50);
+    //mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, 0, 50);
 }
 
 void gen_SVPWM(int angle, float amplitude){
@@ -642,9 +645,9 @@ void gen_SVPWM(int angle, float amplitude){
 	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + 50 - voff * amplitude * 0.5;
 	float duty_cycle_sinal_phase_b = amplitude * sin_b  * 0.5 + 50 - voff * amplitude * 0.5;
 	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + 50 -  voff * amplitude * 0.5;
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
 }
 
@@ -666,9 +669,9 @@ void gen_THIPWM(int angle, float amplitude, float amplitude_harmonic){
 		duty_cycle_sinal_phase_b = amplitude * sin(rad_angle + phase_angle) * 0.5 + 50 + 0.5 * amplitude * sin(3*rad_angle) / amplitude_harmonic;
 		duty_cycle_sinal_phase_c = amplitude * sin(rad_angle - phase_angle) * 0.5 + 50 + 0.5 * amplitude * sin(3*rad_angle) / amplitude_harmonic;
 	}
-	mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+	mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
 }
 
@@ -682,9 +685,9 @@ void gen_DPWMMAX(int angle, float amplitude){
 	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + 50 + max_sin * 0.50 * amplitude;
 	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + 50 + max_sin * 0.50 * amplitude;
 	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + 50 + max_sin * 0.50 * amplitude;
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 }
 
 
@@ -698,9 +701,9 @@ void gen_DPWMMIN(int angle, float amplitude){
 	float duty_cycle_sinal_phase_a = amplitude * sin_a * 0.5 + 50 - min_sin * 0.5 * amplitude;
 	float duty_cycle_sinal_phase_b = amplitude * sin_b * 0.5 + 50 - min_sin * 0.5 * amplitude;
 	float duty_cycle_sinal_phase_c = amplitude * sin_c * 0.5 + 50 - min_sin * 0.5 * amplitude;
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 }
 
 void gen_DPWMM(int angle, float amplitude, int type_modulation, float modulation){
@@ -772,9 +775,9 @@ void gen_DPWMM(int angle, float amplitude, int type_modulation, float modulation
 	float duty_cycle_sinal_phase_a = amplitude * (sin_a + u_0) * 0.5 + 50 ;
 	float duty_cycle_sinal_phase_b = amplitude * (sin_b + u_0) * 0.5 + 50 ;
 	float duty_cycle_sinal_phase_c = amplitude * (sin_c + u_0) * 0.5 + 50 ;
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
-    mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_0, 0, duty_cycle_sinal_phase_a);   //Configure PWM0A & PWM0B with above settings
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_1, 0, duty_cycle_sinal_phase_b);
+    mcpwm_set_duty(MCPWM_UNIT_1, MCPWM_TIMER_2, 0, duty_cycle_sinal_phase_c);
 
 }
 
